@@ -76,16 +76,6 @@ TZ="America/Sao_Paulo"
 ```bash
 python main.py
 ```
-
-## ☁️ Deploy em uma Instância EC2
-
-Para manter o bot rodando 24/7 em uma instância EC2, é recomendado usar um gerenciador de processos como `systemd` e um script para automatizar o deploy.
-
-1.  **Script de Deploy (`deploy.sh`)**: Este script atualiza o código do repositório, instala as dependências e reinicia o bot se houver atualizações.
-2.  **Serviço Systemd (`teliganauepa.service`)**: Este arquivo de serviço garante que o bot inicie com o sistema, reinicie em caso de falha e seja gerenciado de forma robusta.
-
-Consulte o guia de deploy abaixo para obter um exemplo de configuração.
-
 ## 🤝 Contribuições
 
 Contribuições são bem-vindas! Sinta-se à vontade para abrir uma *issue* ou enviar um *pull request*. 
