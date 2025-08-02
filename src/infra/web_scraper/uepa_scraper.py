@@ -92,7 +92,7 @@ class UepaScraper:
                 continue
 
             if not link.startswith("http"):
-                link = f"https.www.uepa.br{link}"
+                link = f"https://www.uepa.br{link}"
 
             date = "Data não disponível"
             date_elem = body.find(string=re.compile(r'Belém, \d+ de \w+ de \d{4}'))
