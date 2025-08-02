@@ -13,7 +13,6 @@ from src.infra.database.repositories.role_repository import RoleRepository
 from src.infra.web_scraper.uepa_scraper import UepaScraper
 from src.presentation.discord.bot import UEPABot
 
-
 class Container(containers.DeclarativeContainer):
     """Container para injeção de dependências."""
 
