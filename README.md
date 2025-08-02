@@ -13,7 +13,7 @@ Um bot para Discord que monitora o site da UEPA em busca de novos editais e os p
 
 ### Pré-requisitos
 
-- Python 3.8 ou superior
+- Python 3.10 ou superior
 - Git
 
 ### 1. Clonar o Repositório
@@ -28,8 +28,8 @@ cd TeLigaNaUepa_Bot
 É recomendado criar um ambiente virtual (virtualenv):
 
 ```bash
-python -m venv venv
-source venv/bin/activate  # No Windows: venv\Scripts\activate
+python -m venv .venv
+source .venv/bin/activate  # No Windows: .venv\Scripts\activate
 ```
 
 Instale as dependências a partir do `requirements.txt`:
@@ -40,35 +40,21 @@ pip install -r requirements.txt
 
 ### 3. Configurar as Variáveis de Ambiente
 
-Copie o arquivo de exemplo `.env.example` para um novo arquivo chamado `.env`. Este arquivo não será enviado para o repositório e guardará suas variáveis secretas.
-
-```bash
-cp .env.example .env
-```
-
-Agora, abra o arquivo `.env` e preencha as variáveis, especialmente o `DISCORD_TOKEN`:
+Crie um arquivo chamado `.env` na raiz do projeto. Este arquivo não será enviado para o repositório e guardará suas variáveis secretas. Você pode usar o arquivo `.env.example` como base.
 
 ```ini
-# Token do seu bot no Discord (Obrigatório)
-DISCORD_TOKEN="SEU_TOKEN_AQUI"
+# Discord
+DISCORD_TOKEN="your_discord_bot_token"
+DISCORD_TEST_GUILD_ID="your_test_server_id" # Opcional: para testes rápidos de comandos
 
-# Intervalo em minutos para checar por novos editais (Padrão: 5)
-CHECK_INTERVAL_MINUTES="5"
+# Banco de Dados
+DATABASE_URL="sqlite:///data/uepa_bot.db"
 
-# Nível de log (Padrão: INFO)
-LOG_LEVEL="INFO"
-
-# Caminho para o arquivo do banco de dados (Padrão: data/uepa_bot.db)
-DATABASE_FILE="data/uepa_bot.db"
-
-# URL da página de editais da UEPA
+# URLs
 UEPA_EDITAIS_URL="https://www.uepa.br/pt-br/editais"
 
-# Ambiente de execução (development ou production)
-ENVIRONMENT="production"
-
-# Timezone
-TZ="America/Sao_Paulo"
+# Logging (opcional)
+LOG_LEVEL="INFO" # Pode ser DEBUG, INFO, WARNING, ERROR, CRITICAL
 ```
 
 ### 4. Executar o Bot
@@ -76,6 +62,20 @@ TZ="America/Sao_Paulo"
 ```bash
 python main.py
 ```
+
+## 🏗️ Estrutura do Projeto
+
+O projeto segue uma arquitetura limpa, separando as responsabilidades em três camadas principais:
+
+- `src/core`: Contém as entidades e regras de negócio da aplicação.
+- `src/infra`: Implementações de baixo nível, como acesso a banco de dados, web scraping e logging.
+- `src/presentation`: A camada de apresentação, que neste caso é a interface com o Discord (bot e cogs).
+
+A injeção de dependências é gerenciada pela biblioteca `dependency-injector`, com as configurações definidas em `src/containers.py`.
+
 ## 🤝 Contribuições
 
 Contribuições são bem-vindas! Sinta-se à vontade para abrir uma *issue* ou enviar um *pull request*. 
+
+# 📄 Licença
+Este projeto está licenciado sob a [Licença MIT](LICENSE).

@@ -1,49 +1,40 @@
-import sqlite3
-from typing import List, Dict, Any, Optional
+"""Implementação do repositório de configurações do servidor para SQLAlchemy."""
+
+from typing import Dict, Any, Optional
+from sqlalchemy.orm import sessionmaker
+
 from src.core.repositories.interfaces import IGuildSettingsRepository
-from src.infra.database.connection import DatabaseConnection
+from src.infra.database.tables import GuildSettingsDB
 
 
 class GuildSettingsRepository(IGuildSettingsRepository):
-    """Implementação do repositório de configurações do servidor para SQLite."""
+    """Implementação do repositório de configurações do servidor para SQLAlchemy."""
 
-    def get(self, guild_id: str) -> Optional[Dict[str, Any]]:
-        with DatabaseConnection() as cursor:
-            cursor.execute(
-                "SELECT * FROM guild_settings WHERE guild_id = ?",
-                (str(guild_id),),
-            )
-            row = cursor.fetchone()
-            return dict(row) if row else None
+    def __init__(self, session_factory: sessionmaker):
+        self.session_factory = session_factory
+
+    def get(self, guild_id: str) -> Optional[GuildSettingsDB]:
+        with self.session_factory() as session:
+            return session.get(GuildSettingsDB, guild_id)
 
     def set(self, guild_id: str, settings: Dict[str, Any]) -> None:
-        with DatabaseConnection() as cursor:
-            existing = self.get(str(guild_id))
-            
-            if existing:
-                updates = {k: v for k, v in settings.items() if k in ['channel_id', 'enabled']}
-                if not updates:
-                    return
-
-                set_clause = ", ".join([f"{key} = ?" for key in updates.keys()])
-                values = list(updates.values())
-                values.append(str(guild_id))
-
-                cursor.execute(
-                    f"UPDATE guild_settings SET {set_clause} WHERE guild_id = ?",
-                    values,
-                )
+        with self.session_factory() as session:
+            guild_settings = session.get(GuildSettingsDB, guild_id)
+            if guild_settings:
+                for key, value in settings.items():
+                    setattr(guild_settings, key, value)
             else:
-                cursor.execute(
-                    "INSERT INTO guild_settings (guild_id, channel_id, enabled) VALUES (?, ?, ?)",
-                    (
-                        str(guild_id),
-                        settings.get("channel_id"),
-                        settings.get("enabled", False),
-                    ),
+                guild_settings = GuildSettingsDB(guild_id=guild_id, **settings)
+                session.add(guild_settings)
+            session.commit()
+
+    def get_all_guilds(self) -> list[type[GuildSettingsDB]]:
+        with self.session_factory() as session:
+            return (
+                session.query(GuildSettingsDB)
+                .filter(
+                    GuildSettingsDB.enabled.is_(True),
+                    GuildSettingsDB.channel_id.isnot(None),
                 )
-    
-    def get_all_guilds(self) -> List[Dict[str, Any]]:
-        with DatabaseConnection() as cursor:
-            cursor.execute("SELECT * FROM guild_settings WHERE enabled = 1 AND channel_id IS NOT NULL")
-            return [dict(row) for row in cursor.fetchall()] 
+                .all()
+                )

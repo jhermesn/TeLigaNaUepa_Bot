@@ -1,3 +1,4 @@
+"""Define a entidade Edital, que representa um edital da UEPA."""
 from typing import Optional
 from pydantic import BaseModel, HttpUrl, Field
 
@@ -10,4 +11,5 @@ class Edital(BaseModel):
     hash: str = Field(..., description="Hash MD5 único do edital")
 
     class Config:
-        frozen = True  # Torna o objeto imutável 
+        """Configurações para o modelo Pydantic."""
+        frozen = True

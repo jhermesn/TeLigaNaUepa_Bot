@@ -1,11 +1,17 @@
+"""Implementação do scraper para o site da UEPA."""
+
+import hashlib
+import logging
+import re
+from typing import List
+
 import aiohttp
 from bs4 import BeautifulSoup
-import hashlib
-from typing import List
-import logging
+from pydantic import ValidationError, HttpUrl
 
-from src.core.entities.edital import Edital
+
 from src.config import settings
+from src.core.entities.edital import Edital
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +23,8 @@ class UepaScraper:
         self.session = session
         self.url = settings.UEPA_EDITAIS_URL
 
-    def _generate_edital_hash(self, title: str, link: str) -> str:
+    @staticmethod
+    def _generate_edital_hash(title: str, link: str) -> str:
         """Gera um hash MD5 para um edital a partir do título e link."""
         content = f"{title}:{link}"
         return hashlib.md5(content.encode()).hexdigest()
@@ -35,68 +42,79 @@ class UepaScraper:
                 html = await response.text()
                 return self._parse_html(html)
         except aiohttp.ClientError as e:
-            logger.error(f"Erro de HTTP ao acessar o site da UEPA: {e}")
-        except Exception as e:
-            logger.error(f"Erro inesperado ao buscar editais: {e}")
+            logger.error("Erro de HTTP ao acessar o site da UEPA: %s", e)
+        except IOError as e:
+            logger.error("Erro inesperado ao buscar editais: %s", e)
         return []
 
     def _parse_html(self, html: str) -> List[Edital]:
         """Extrai informações dos editais do HTML."""
         soup = BeautifulSoup(html, "lxml")
         editais = []
-        
-        # Seletores atualizados baseados na estrutura atual do site da UEPA
-        selectors = [
-            ".views-field-title a",
-            ".field-content a", 
-            "a[href*='edital']",
-        ]
 
-        links = []
-        for selector in selectors:
-            links = soup.select(selector)
-            if links:
-                logger.info(f"Encontrados {len(links)} links com seletor: {selector}")
-                break
+        accordion_buttons = soup.select("button.accordion-button")
 
-        # Filtrar apenas links que são realmente editais
-        edital_links = []
-        for link in links:
-            href = link.get("href", "")
-            text = link.get_text(strip=True)
-            if href and ("edital" in href.lower() or "edital" in text.lower()):
-                edital_links.append(link)
+        for button in accordion_buttons:
+            title = button.get_text(strip=True)
 
-        for link_elem in edital_links[:20]:  # Limita aos 20 mais recentes
-            title = link_elem.get_text(strip=True)
-            link = link_elem.get("href")
+            target_id_attr = button.get("data-bs-target")
+            if not target_id_attr:
+                continue
+
+            target_id = target_id_attr
+            if isinstance(target_id_attr, list):
+                target_id = target_id_attr[0] if target_id_attr else None
+
+            if not target_id or not isinstance(target_id, str):
+                continue
+
+            body = soup.select_one(target_id)
+            if not body:
+                continue
+
+            link_elem = body.select_one("a[href*='/sites/default/files/editais/']")
+            link = None
+            if link_elem:
+                href = link_elem.get("href")
+                if isinstance(href, list):
+                    link = href[0] if href else None
+                else:
+                    link = str(href) if href else None
+
+            if not link:
+                match = re.search(r'Edital\s*(\d+)-(\d{4})', title, re.IGNORECASE)
+                if match:
+                    number, year = match.groups()
+                    link = f"https://www.uepa.br/sites/default/files/editais/edital{number}{year}.pdf"
+
+            if not link:
+                logger.warning("Não foi possível encontrar ou construir o link para o edital: %s", title)
+                continue
 
             if not link.startswith("http"):
-                link = f"https://www.uepa.br{link}"
+                link = f"https.www.uepa.br{link}"
 
-            # Para editais em PDF, geralmente não há data na página de listagem
-            # Vamos tentar extrair do contexto ou usar "Data não disponível"
-            date_elem = None
-            parent = link_elem.parent
-            while parent and not date_elem:
-                date_elem = parent.select_one(".date, .field-date, time, .views-field-created")
-                parent = parent.parent
-            
-            date = date_elem.get_text(strip=True) if date_elem else "Data não disponível"
-            
+            date = "Data não disponível"
+            date_elem = body.find(string=re.compile(r'Belém, \d+ de \w+ de \d{4}'))
+            if date_elem:
+                date = str(date_elem).strip()
+
             if title and link:
                 edital_hash = self._generate_edital_hash(title, link)
                 try:
                     editais.append(
                         Edital(
                             title=title,
-                            link=link,
+                            link=HttpUrl(link),
                             date=date,
                             hash=edital_hash
                         )
                     )
-                except Exception as e:
-                    logger.warning(f"Erro ao validar dados do edital '{title}': {e}")
+                except ValidationError as e:
+                    logger.warning("Erro ao validar dados do edital '%s': %s", title, e)
 
-        logger.info(f"Total de {len(editais)} editais parseados com sucesso.")
-        return editais 
+        if not editais:
+            logger.warning("Nenhum edital encontrado com a estrutura de accordion. A estrutura do site pode ter mudado ou requer JavaScript.")
+
+        logger.info("Total de %s editais parseados com sucesso.", len(editais))
+        return editais[:20]

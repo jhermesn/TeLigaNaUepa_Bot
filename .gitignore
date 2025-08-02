@@ -92,10 +92,8 @@ coverage.xml
 # Backup files
 *.bak
 *.backup
-*~
 
 # System files
 desktop.ini
 
-teliganauepa.service
-deploy.sh
+*/__pycache__/

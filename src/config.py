@@ -1,38 +1,23 @@
-import os
-from typing import Optional
-from dataclasses import dataclass
-
-from dotenv import load_dotenv
-
-load_dotenv()
+"""Carrega e valida as configurações do ambiente."""
+from pydantic_settings import BaseSettings
 
 
-@dataclass
-class Settings:
+class Settings(BaseSettings):
     """Carrega e valida as configurações do ambiente."""
 
-    # Discord Bot
-    DISCORD_TOKEN: str = os.getenv("DISCORD_TOKEN", "")
+    DISCORD_TOKEN: str = ""
+    CHECK_INTERVAL_MINUTES: int = 5
+    LOG_LEVEL: str = "INFO"
+    DATABASE_URL: str = "sqlite:///data/uepa_bot.db"
+    UEPA_EDITAIS_URL: str = "https://www.uepa.br/pt-br/editais"
+    ENVIRONMENT: str = "development"
+    TZ: str = "America/Sao_Paulo"
 
-    # Bot Settings
-    CHECK_INTERVAL_MINUTES: int = int(os.getenv("CHECK_INTERVAL_MINUTES", "5"))
-    LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO").upper()
+    class Config:
+        """Configurações do Pydantic."""
 
-    # Database
-    DATABASE_FILE: str = os.getenv("DATABASE_FILE", "data/uepa_bot.db")
-
-    # UEPA Website
-    UEPA_EDITAIS_URL: str = os.getenv("UEPA_EDITAIS_URL", "https://www.uepa.br/pt-br/editais")
-
-    # Environment
-    ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
-    TZ: str = os.getenv("TZ", "America/Sao_Paulo")
-
-    def __post_init__(self):
-        """Valida as configurações após a inicialização."""
-        if not self.DISCORD_TOKEN:
-            raise ValueError("DISCORD_TOKEN não foi configurado nas variáveis de ambiente.")
+        env_file = ".env"
+        env_file_encoding = "utf-8"
 
 
-# Criar instância com validação automática
-settings = Settings() 
+settings = Settings()
