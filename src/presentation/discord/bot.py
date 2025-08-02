@@ -43,12 +43,20 @@ class UEPABot(commands.Bot):
         self.scraper = scraper
 
         self.known_edital_hashes: set = set()
-        self.is_first_check = True
+
+    def populate_known_hashes(self):
+        """Popula o cache de hashes conhecidos a partir do banco de dados."""
+        self.known_edital_hashes = self.all_editais_repo.get_all_hashes()
+        logger.info(
+            "Cache populado com %d hashes de editais conhecidos.",
+            len(self.known_edital_hashes),
+        )
 
     async def setup_hook(self):
         """Executado quando o bot é configurado."""
         logger.info("Iniciando setup do bot...")
         await self.load_cogs()
+        self.populate_known_hashes()
         self.check_editais_task.start()
         logger.info("Bot configurado e tarefas iniciadas.")
 
@@ -92,41 +100,7 @@ class UEPABot(commands.Bot):
     @tasks.loop(minutes=settings.CHECK_INTERVAL_MINUTES)
     async def check_editais_task(self):
         """Tarefa periódica que verifica e posta novos editais."""
-
-        if self.is_first_check:
-            logger.info(
-                "Primeira verificação. Estabelecendo linha de base de editais..."
-            )
-            initial_editais = await self.scraper.fetch_editais()
-            if initial_editais:
-                self.known_edital_hashes = self.all_editais_repo.get_all_hashes()
-
-                new_editais_to_add = [
-                    e
-                    for e in initial_editais
-                    if e.hash not in self.known_edital_hashes
-                ]
-
-                if new_editais_to_add:
-                    self.all_editais_repo.add_many(new_editais_to_add)
-                    logger.info(
-                        "%d editais novos foram registrados no banco.",
-                        len(new_editais_to_add),
-                    )
-
-                self.known_edital_hashes = self.all_editais_repo.get_all_hashes()
-                logger.info(
-                    "Cache populado com %d hashes de editais conhecidos.",
-                    len(self.known_edital_hashes),
-                )
-
-            self.is_first_check = False
-            logger.info(
-                "Linha de base estabelecida. O bot está monitorando novos editais."
-            )
-            return
-
-        logger.info("Iniciando verificação periódica de editais...")
+        logger.info("Iniciando verificação de editais...")
 
         scraped_editais = await self.scraper.fetch_editais()
         if not scraped_editais:
