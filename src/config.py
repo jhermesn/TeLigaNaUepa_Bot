@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
     DATABASE_URL: str = "sqlite:///data/uepa_bot.db"
     UEPA_EDITAIS_URL: str = "https://www.uepa.br/pt-br/editais"
-    ENVIRONMENT: str = "development"
+    ENVIRONMENT: str = "production"
     TZ: str = "America/Sao_Paulo"
 
     class Config:

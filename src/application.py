@@ -37,7 +37,7 @@ class Application:
         for log_file in log_files:
             if os.path.exists(log_file):
                 try:
-                    with open(log_file, "w") as f:
+                    with open(log_file, "w", encoding="utf-8") as f:
                         f.truncate(0)
                     print(f"Arquivo de log limpo: {log_file}")
                 except IOError as e:
@@ -64,7 +64,7 @@ class Application:
             logger.critical("Token do Discord inválido.")
         except KeyboardInterrupt:
             logger.info("Bot desligado pelo usuário.")
-        except Exception as e:
+        except discord.DiscordException as e:
             logger.critical("Erro fatal ao iniciar o bot: %s", e, exc_info=True)
         finally:
             if not bot.is_closed():

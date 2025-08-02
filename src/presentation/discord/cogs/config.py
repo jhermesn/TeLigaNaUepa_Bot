@@ -5,9 +5,6 @@ import discord
 from discord import app_commands
 from discord.ext import commands
 
-from dependency_injector.wiring import inject, Provide
-
-from src.containers import Container
 from src.core.repositories.interfaces import IGuildSettingsRepository, ILogRepository
 from src.presentation.discord.bot import UEPABot
 

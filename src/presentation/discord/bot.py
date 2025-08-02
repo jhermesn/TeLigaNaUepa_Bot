@@ -1,7 +1,10 @@
 """Classe principal do bot, herda de commands.Bot do discord.py."""
 
+from __future__ import annotations
+
 import asyncio
 import logging
+import typing
 from datetime import datetime, timezone
 
 import discord
@@ -17,6 +20,9 @@ from src.core.repositories.interfaces import (
 )
 from src.infra.web_scraper.uepa_scraper import UepaScraper
 
+if typing.TYPE_CHECKING:
+    from src.containers import Container
+
 logger = logging.getLogger(__name__)
 
 
@@ -29,16 +35,20 @@ class UEPABot(commands.Bot):
         intents.guilds = True
         super().__init__(command_prefix="!", intents=intents, help_command=None)
         
-        self.container = None
+        self.container: Container | None = None
         self.guild_repo: IGuildSettingsRepository | None = None
         self.all_editais_repo: IAllEditaisRepository | None = None
         self.role_repo: IRoleRepository | None = None
         self.log_repo: ILogRepository | None = None
         self.scraper: UepaScraper | None = None
         self.known_edital_hashes: set = set()
+        self.is_first_check = True
 
     def populate_known_hashes(self):
         """Popula o cache de hashes conhecidos a partir do banco de dados."""
+        if not self.all_editais_repo:
+            logger.error("Repositório de editais não inicializado.")
+            return
         self.known_edital_hashes = self.all_editais_repo.get_all_hashes()
         logger.info(
             "Cache populado com %d hashes de editais conhecidos.",
@@ -85,23 +95,29 @@ class UEPABot(commands.Bot):
     async def on_guild_join(self, guild: discord.Guild):
         """Registra o servidor quando o bot entra."""
         logger.info("Bot adicionado ao servidor: %s (ID: %s)", guild.name, guild.id)
-        self.guild_repo.set(str(guild.id), {"enabled": False})
-        self.log_repo.add(
-            str(guild.id), "bot_joined", "Bot adicionado ao servidor " + guild.name
-        )
+        if self.guild_repo and self.log_repo:
+            self.guild_repo.set(str(guild.id), {"enabled": False})
+            self.log_repo.add(
+                str(guild.id), "bot_joined", "Bot adicionado ao servidor " + guild.name
+            )
 
     async def on_guild_remove(self, guild: discord.Guild):
         """Log quando o bot é removido de um servidor."""
         logger.info("Bot removido do servidor: %s (ID: %s)", guild.name, guild.id)
-        self.log_repo.add(
-            str(guild.id), "bot_removed", "Bot removido do servidor " + guild.name
-        )
+        if self.log_repo:
+            self.log_repo.add(
+                str(guild.id), "bot_removed", "Bot removido do servidor " + guild.name
+            )
 
     @tasks.loop(minutes=settings.CHECK_INTERVAL_MINUTES)
     async def check_editais_task(self):
         """Tarefa periódica que verifica e posta novos editais."""
+        if not self.scraper or not self.all_editais_repo or not self.guild_repo:
+            logger.error("Scraper ou repositórios não inicializados para a tarefa.")
+            return
+            
         logger.info("Iniciando verificação de editais...")
-
+        
         scraped_editais = await self.scraper.fetch_editais()
         if not scraped_editais:
             logger.warning("Scraper não retornou editais.")
@@ -126,6 +142,17 @@ class UEPABot(commands.Bot):
         for edital in new_editais:
             self.known_edital_hashes.add(edital.hash)
 
+        if self.is_first_check:
+            self.is_first_check = False
+            logger.info(
+                "Primeira verificação. Editais registrados, não serão notificados."
+            )
+            if self.log_repo:
+                self.log_repo.add(
+                    None, "first_check", f"{len(new_editais)} editais registrados na base."
+                )
+            return
+
         active_guilds = self.guild_repo.get_all_guilds()
         for guild_settings in active_guilds:
             if not guild_settings.enabled:
@@ -148,6 +175,10 @@ class UEPABot(commands.Bot):
         self, guild: discord.Guild, channel_id: int, new_editais: list[Edital]
     ):
         """Envia a notificação de novos editais para um servidor."""
+        if not self.role_repo or not self.log_repo:
+            logger.error("Repositórios de Role ou Log não inicializados para notificação.")
+            return
+
         channel = guild.get_channel(channel_id)
         if not channel or not isinstance(channel, (discord.TextChannel, discord.Thread)):
             logger.warning(

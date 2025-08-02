@@ -1,11 +1,9 @@
 """Cog para comandos informativos e de ajuda."""
 import logging
 import discord
-from dependency_injector.wiring import inject, Provide
 from discord import app_commands, TextChannel
 from discord.ext import commands
 
-from src.containers import Container
 from src.core.repositories.interfaces import (
     IAllEditaisRepository,
     IGuildSettingsRepository,
