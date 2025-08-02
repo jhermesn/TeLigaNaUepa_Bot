@@ -45,7 +45,7 @@ class RoleRepository(IRoleRepository):
                 session.rollback()
                 return False
 
-    def get_all(self, guild_id: str) -> list[type[GuildRoleDB]]:
+    def get_all(self, guild_id: str) -> list["GuildRoleDB"]:
         with self.session_factory() as session:
             return (
                 session.query(GuildRoleDB)
