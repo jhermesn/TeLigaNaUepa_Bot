@@ -21,18 +21,20 @@ logger = logging.getLogger(__name__)
 class InfoCog(commands.Cog):
     """Cog para comandos informativos e de ajuda."""
 
-    @inject
     def __init__(
         self,
         bot: UEPABot,
-        container: Container = Provide[Container],
+        guild_repo: IGuildSettingsRepository,
+        role_repo: IRoleRepository,
+        all_editais_repo: IAllEditaisRepository,
+        scraper: UepaScraper,
     ):
         """Inicializa o cog."""
         self.bot = bot
-        self.guild_repo: IGuildSettingsRepository = container.guild_settings_repo()
-        self.role_repo: IRoleRepository = container.role_repo()
-        self.all_editais_repo: IAllEditaisRepository = container.all_editais_repo()
-        self.scraper: UepaScraper = container.uepa_scraper()
+        self.guild_repo = guild_repo
+        self.role_repo = role_repo
+        self.all_editais_repo = all_editais_repo
+        self.scraper = scraper
 
     @app_commands.command(name="status", description="Verifica o status atual do bot")
     async def status(self, interaction: discord.Interaction):
@@ -159,4 +161,15 @@ class InfoCog(commands.Cog):
 
 async def setup(bot: UEPABot):
     """Configura o cog de informações."""
-    await bot.add_cog(InfoCog(bot))
+    if not bot.container:
+        logger.error("Container do bot não foi inicializado.")
+        return
+
+    cog = InfoCog(
+        bot=bot,
+        guild_repo=bot.container.guild_settings_repo(),
+        role_repo=bot.container.role_repo(),
+        all_editais_repo=bot.container.all_editais_repo(),
+        scraper=bot.container.uepa_scraper(),
+    )
+    await bot.add_cog(cog)

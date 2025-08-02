@@ -55,6 +55,7 @@ class Application:
         """Inicia a aplicação."""
         self.setup()
         bot = self.container.bot()
+        bot.container = self.container
 
         try:
             logger.info("Iniciando o bot...")

@@ -19,16 +19,16 @@ logger = logging.getLogger(__name__)
 class RolesCog(commands.Cog):
     """Cog para comandos de gerenciamento de cargos."""
 
-    @inject
     def __init__(
         self,
         bot: UEPABot,
-        container: Container = Provide[Container],
+        role_repo: IRoleRepository,
+        log_repo: ILogRepository,
     ):
         """Inicializa o cog."""
         self.bot = bot
-        self.role_repo: IRoleRepository = container.role_repo()
-        self.log_repo: ILogRepository = container.log_repo()
+        self.role_repo = role_repo
+        self.log_repo = log_repo
 
     @app_commands.command(
         name="adicionar_cargo",
@@ -137,12 +137,13 @@ class RolesCog(commands.Cog):
             @inject
             def __init__(
                 self,
-                container: Container = Provide[Container],
+                role_repo: IRoleRepository = Provide[Container.role_repo],
+                log_repo: ILogRepository = Provide[Container.log_repo],
             ):
                 """Inicializa a view."""
                 super().__init__(timeout=30)
-                self.role_repo: IRoleRepository = container.role_repo()
-                self.log_repo: ILogRepository = container.log_repo()
+                self.role_repo = role_repo
+                self.log_repo = log_repo
 
             @discord.ui.button(
                 label="Confirmar e Limpar", style=discord.ButtonStyle.danger
@@ -180,4 +181,13 @@ class RolesCog(commands.Cog):
 
 async def setup(bot: UEPABot):
     """Configura o cog de gerenciamento de cargos."""
-    await bot.add_cog(RolesCog(bot))
+    if not bot.container:
+        logger.error("Container do bot não foi inicializado.")
+        return
+
+    cog = RolesCog(
+        bot=bot,
+        role_repo=bot.container.role_repo(),
+        log_repo=bot.container.log_repo(),
+    )
+    await bot.add_cog(cog)

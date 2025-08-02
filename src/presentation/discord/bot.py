@@ -23,25 +23,18 @@ logger = logging.getLogger(__name__)
 class UEPABot(commands.Bot):
     """Classe principal do bot, herda de commands.Bot do discord.py."""
 
-    def __init__(
-        self,
-        guild_repo: IGuildSettingsRepository,
-        all_editais_repo: IAllEditaisRepository,
-        role_repo: IRoleRepository,
-        log_repo: ILogRepository,
-        scraper: UepaScraper,
-    ):
+    def __init__(self):
         """Inicializa o bot."""
         intents = discord.Intents.default()
         intents.guilds = True
         super().__init__(command_prefix="!", intents=intents, help_command=None)
-
-        self.guild_repo = guild_repo
-        self.all_editais_repo = all_editais_repo
-        self.role_repo = role_repo
-        self.log_repo = log_repo
-        self.scraper = scraper
-
+        
+        self.container = None
+        self.guild_repo: IGuildSettingsRepository | None = None
+        self.all_editais_repo: IAllEditaisRepository | None = None
+        self.role_repo: IRoleRepository | None = None
+        self.log_repo: ILogRepository | None = None
+        self.scraper: UepaScraper | None = None
         self.known_edital_hashes: set = set()
 
     def populate_known_hashes(self):
@@ -54,6 +47,13 @@ class UEPABot(commands.Bot):
 
     async def setup_hook(self):
         """Executado quando o bot é configurado."""
+        if self.container:
+            self.guild_repo = self.container.guild_settings_repo()
+            self.all_editais_repo = self.container.all_editais_repo()
+            self.role_repo = self.container.role_repo()
+            self.log_repo = self.container.log_repo()
+            self.scraper = self.container.uepa_scraper()
+
         logger.info("Iniciando setup do bot...")
         await self.load_cogs()
         self.populate_known_hashes()

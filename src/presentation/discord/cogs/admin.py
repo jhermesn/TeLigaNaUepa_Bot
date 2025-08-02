@@ -18,15 +18,15 @@ logger = logging.getLogger(__name__)
 class AdminCog(commands.Cog):
     """Cog para comandos administrativos e de depuração."""
 
-    @inject
     def __init__(
         self,
         bot: UEPABot,
-        container: Container = Provide[Container],
+        all_editais_repo: IAllEditaisRepository,
+        log_repo: ILogRepository,
     ):
         self.bot = bot
-        self.all_editais_repo: IAllEditaisRepository = container.all_editais_repo()
-        self.log_repo: ILogRepository = container.log_repo()
+        self.all_editais_repo = all_editais_repo
+        self.log_repo = log_repo
 
     @app_commands.command(
         name="verificar_agora", description="Força uma verificação de novos editais"
@@ -69,15 +69,17 @@ class AdminCog(commands.Cog):
             @inject
             def __init__(
                 self,
-                container: Container = Provide[Container],
+                all_editais_repo: IAllEditaisRepository = Provide[
+                    Container.all_editais_repo
+                ],
+                log_repo: ILogRepository = Provide[Container.log_repo],
+                bot: UEPABot = Provide[Container.bot],
             ):
                 """Inicializa a view."""
                 super().__init__(timeout=30)
-                self.all_editais_repo: IAllEditaisRepository = (
-                    container.all_editais_repo()
-                )
-                self.log_repo: ILogRepository = container.log_repo()
-                self.bot: UEPABot = container.bot()
+                self.all_editais_repo = all_editais_repo
+                self.log_repo = log_repo
+                self.bot = bot
 
             @discord.ui.button(
                 label="Confirmar e Limpar TUDO", style=discord.ButtonStyle.danger
@@ -124,4 +126,13 @@ class AdminCog(commands.Cog):
 
 async def setup(bot: UEPABot):
     """Configura o cog de administração."""
-    await bot.add_cog(AdminCog(bot))
+    if not bot.container:
+        logger.error("Container do bot não foi inicializado.")
+        return
+
+    cog = AdminCog(
+        bot=bot,
+        all_editais_repo=bot.container.all_editais_repo(),
+        log_repo=bot.container.log_repo(),
+    )
+    await bot.add_cog(cog)

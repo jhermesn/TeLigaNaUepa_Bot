@@ -18,16 +18,16 @@ logger = logging.getLogger(__name__)
 class ConfigCog(commands.Cog):
     """Cog para comandos de configuração do bot."""
 
-    @inject
     def __init__(
         self,
         bot: UEPABot,
-        container: Container = Provide[Container],
+        guild_repo: IGuildSettingsRepository,
+        log_repo: ILogRepository,
     ):
         """Inicializa o cog."""
         self.bot = bot
-        self.guild_repo: IGuildSettingsRepository = container.guild_settings_repo()
-        self.log_repo: ILogRepository = container.log_repo()
+        self.guild_repo = guild_repo
+        self.log_repo = log_repo
 
     @app_commands.command(
         name="configurar", description="Configura o canal para notificações de editais"
@@ -88,4 +88,13 @@ class ConfigCog(commands.Cog):
 
 async def setup(bot: UEPABot):
     """Configura o cog de configuração."""
-    await bot.add_cog(ConfigCog(bot))
+    if not bot.container:
+        logger.error("Container do bot não foi inicializado.")
+        return
+
+    cog = ConfigCog(
+        bot=bot,
+        guild_repo=bot.container.guild_settings_repo(),
+        log_repo=bot.container.log_repo(),
+    )
+    await bot.add_cog(cog)

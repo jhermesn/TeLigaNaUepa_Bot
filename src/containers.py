@@ -32,11 +32,4 @@ class Container(containers.DeclarativeContainer):
 
     uepa_scraper = providers.Factory(UepaScraper, session=aiohttp_session)
 
-    bot = providers.Singleton(
-        UEPABot,
-        guild_repo=guild_settings_repo,
-        all_editais_repo=all_editais_repo,
-        role_repo=role_repo,
-        log_repo=log_repo,
-        scraper=uepa_scraper,
-    )
+    bot = providers.Singleton(UEPABot)
