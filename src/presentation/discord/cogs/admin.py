@@ -22,14 +22,11 @@ class AdminCog(commands.Cog):
     def __init__(
         self,
         bot: UEPABot,
-        all_editais_repo: IAllEditaisRepository = Provide[
-            Container.all_editais_repo
-        ],
-        log_repo: ILogRepository = Provide[Container.log_repo],
+        container: Container = Provide[Container],
     ):
         self.bot = bot
-        self.all_editais_repo = all_editais_repo
-        self.log_repo = log_repo
+        self.all_editais_repo: IAllEditaisRepository = container.all_editais_repo()
+        self.log_repo: ILogRepository = container.log_repo()
 
     @app_commands.command(
         name="verificar_agora", description="Força uma verificação de novos editais"
@@ -72,17 +69,15 @@ class AdminCog(commands.Cog):
             @inject
             def __init__(
                 self,
-                all_editais_repo: IAllEditaisRepository = Provide[
-                    Container.all_editais_repo
-                ],
-                log_repo: ILogRepository = Provide[Container.log_repo],
-                bot: UEPABot = Provide[Container.bot],
+                container: Container = Provide[Container],
             ):
                 """Inicializa a view."""
                 super().__init__(timeout=30)
-                self.all_editais_repo = all_editais_repo
-                self.log_repo = log_repo
-                self.bot = bot
+                self.all_editais_repo: IAllEditaisRepository = (
+                    container.all_editais_repo()
+                )
+                self.log_repo: ILogRepository = container.log_repo()
+                self.bot: UEPABot = container.bot()
 
             @discord.ui.button(
                 label="Confirmar e Limpar TUDO", style=discord.ButtonStyle.danger

@@ -2,6 +2,8 @@
 import asyncio
 import logging
 import sys
+import glob
+import os
 import discord
 
 from src.containers import Container
@@ -30,6 +32,17 @@ class Application:
 
     def setup(self):
         """Configura a aplicação."""
+        
+        log_files = glob.glob("logs/**/*.log", recursive=True)
+        for log_file in log_files:
+            if os.path.exists(log_file):
+                try:
+                    with open(log_file, "w") as f:
+                        f.truncate(0)
+                    print(f"Arquivo de log limpo: {log_file}")
+                except IOError as e:
+                    print(f"Erro ao limpar o arquivo de log {log_file}: {e}")
+
         setup_logging(
             level=self.container.config.LOG_LEVEL(),
             env=self.container.config.ENVIRONMENT(),

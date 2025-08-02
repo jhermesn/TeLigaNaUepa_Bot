@@ -22,13 +22,12 @@ class ConfigCog(commands.Cog):
     def __init__(
         self,
         bot: UEPABot,
-        guild_repo: IGuildSettingsRepository = Provide[Container.guild_settings_repo],
-        log_repo: ILogRepository = Provide[Container.log_repo],
+        container: Container = Provide[Container],
     ):
         """Inicializa o cog."""
         self.bot = bot
-        self.guild_repo = guild_repo
-        self.log_repo = log_repo
+        self.guild_repo: IGuildSettingsRepository = container.guild_settings_repo()
+        self.log_repo: ILogRepository = container.log_repo()
 
     @app_commands.command(
         name="configurar", description="Configura o canal para notificações de editais"

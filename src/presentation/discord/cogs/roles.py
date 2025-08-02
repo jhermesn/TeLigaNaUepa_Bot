@@ -23,13 +23,12 @@ class RolesCog(commands.Cog):
     def __init__(
         self,
         bot: UEPABot,
-        role_repo: IRoleRepository = Provide[Container.role_repo],
-        log_repo: ILogRepository = Provide[Container.log_repo],
+        container: Container = Provide[Container],
     ):
         """Inicializa o cog."""
         self.bot = bot
-        self.role_repo = role_repo
-        self.log_repo = log_repo
+        self.role_repo: IRoleRepository = container.role_repo()
+        self.log_repo: ILogRepository = container.log_repo()
 
     @app_commands.command(
         name="adicionar_cargo",
@@ -138,13 +137,12 @@ class RolesCog(commands.Cog):
             @inject
             def __init__(
                 self,
-                role_repo: IRoleRepository = Provide[Container.role_repo],
-                log_repo: ILogRepository = Provide[Container.log_repo],
+                container: Container = Provide[Container],
             ):
                 """Inicializa a view."""
                 super().__init__(timeout=30)
-                self.role_repo = role_repo
-                self.log_repo = log_repo
+                self.role_repo: IRoleRepository = container.role_repo()
+                self.log_repo: ILogRepository = container.log_repo()
 
             @discord.ui.button(
                 label="Confirmar e Limpar", style=discord.ButtonStyle.danger

@@ -25,19 +25,14 @@ class InfoCog(commands.Cog):
     def __init__(
         self,
         bot: UEPABot,
-        guild_repo: IGuildSettingsRepository = Provide[Container.guild_settings_repo],
-        role_repo: IRoleRepository = Provide[Container.role_repo],
-        all_editais_repo: IAllEditaisRepository = Provide[
-            Container.all_editais_repo
-        ],
-        scraper: UepaScraper = Provide[Container.uepa_scraper],
+        container: Container = Provide[Container],
     ):
         """Inicializa o cog."""
         self.bot = bot
-        self.guild_repo = guild_repo
-        self.role_repo = role_repo
-        self.all_editais_repo = all_editais_repo
-        self.scraper = scraper
+        self.guild_repo: IGuildSettingsRepository = container.guild_settings_repo()
+        self.role_repo: IRoleRepository = container.role_repo()
+        self.all_editais_repo: IAllEditaisRepository = container.all_editais_repo()
+        self.scraper: UepaScraper = container.uepa_scraper()
 
     @app_commands.command(name="status", description="Verifica o status atual do bot")
     async def status(self, interaction: discord.Interaction):
